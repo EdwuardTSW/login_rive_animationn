@@ -1,10 +1,10 @@
-name: login_rive_animation_26_3_tsw
+name: login_rive_animation
 description: "A new Flutter project."
 publish_to: 'none'
 version: 0.1.0+1
 
 environment:
-  sdk: ^3.13.5
+  sdk: ^3.5.0
 
 dependencies:
   flutter:
@@ -19,5 +19,4 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/
-
+    - assets/login-bear-animation.riv
