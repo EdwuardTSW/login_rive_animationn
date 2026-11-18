@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:rive/rive.dart';
 import 'dart:async'; //3.1 importar el timer
+import 'products_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // 4.2 Errores para mostrar en la UI
   String? EmailError;
   String? PassError;
+  bool _isLoading = false;
 
    // 4.3 Validadores
   bool isValidEmail(String email) {
@@ -50,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // 4.4 accion del boton
-  void _onLogin(){
+  Future<void> _onLogin() async {
     //Recortar espacion en blanco accidentales
     final email = emailCtrl.text.trim();
     final pass = passCtrl.text;
@@ -72,10 +75,47 @@ class _LoginScreenState extends State<LoginScreen> {
     _isHandsUp?.change(false);
     _numLook?.value = 50.0;
 
-    // 4.7 Activar triggers
-    if (emailTypedError == null && passTypedError == null) {
+    if (emailTypedError != null || passTypedError != null) {
+      _trigFail?.fire();
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await Future.delayed(const Duration(seconds: 2));
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: pass,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
       _trigSuccess?.fire();
-    } else {
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ProductsScreen()),
+      );
+    } on FirebaseAuthException {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        PassError = 'Credenciales incorrectas en Firebase';
+      });
+      _trigFail?.fire();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        PassError = 'No fue posible iniciar sesion';
+      });
       _trigFail?.fire();
     }
   }
@@ -247,14 +287,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  onPressed: _onLogin,
-                  child: const Text(
-                    "Login",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                    ),
-                  ),
+                  onPressed: _isLoading ? null : _onLogin,
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "Login",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
