@@ -33,6 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
   //4.1 Controles para manipular lo que escribe el usuario
   final emailCtrl = TextEditingController();
   final passCtrl = TextEditingController();
+  final resetEmailCtrl = TextEditingController();
 
   bool _isLoading = false;
 
@@ -109,6 +110,56 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       _trigFail?.fire();
     }
+  }
+
+  Future<void> _showForgotPasswordDialog() async {
+    resetEmailCtrl.text = emailCtrl.text.trim();
+
+    final email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Recuperar contraseña'),
+        content: TextField(
+          controller: resetEmailCtrl,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'Correo electrónico',
+            prefixIcon: Icon(Icons.email),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(resetEmailCtrl.text.trim()),
+            child: const Text('Enviar enlace'),
+          ),
+        ],
+      ),
+    );
+
+    if (email == null || email.isEmpty) return;
+
+    try {
+      await FirebaseAuth.instance
+          .sendPasswordResetEmail(email: email)
+          .timeout(const Duration(seconds: 15));
+    } catch (e) {
+      debugPrint('Reset password error: $e');
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Si el correo está registrado, recibirás un enlace para '
+          'restablecer tu contraseña. Revisa también spam.',
+        ),
+      ),
+    );
   }
 
   // 2.2 Crear los oyentes (listeners)
@@ -259,10 +310,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 10),
                 SizedBox(
                   width: size.width,
-                  child: const Text(
-                    "Forgot Password?",
-                    textAlign: TextAlign.right,
-                    style: TextStyle(decoration: TextDecoration.underline)
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _showForgotPasswordDialog,
+                      child: const Text(
+                        "Forgot Password?",
+                        style: TextStyle(decoration: TextDecoration.underline),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -326,6 +382,7 @@ class _LoginScreenState extends State<LoginScreen> {
     //2.4 Liberar memoria/recurso en los focus node
     _emailFocus.dispose();
     _passwordFocus.dispose();
+    resetEmailCtrl.dispose();
     //3.5 liberar timer
     _typingDebounce?.cancel();
     super.dispose();
