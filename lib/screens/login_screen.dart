@@ -33,40 +33,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final emailCtrl = TextEditingController();
   final passCtrl = TextEditingController();
 
-  // 4.2 Errores para mostrar en la UI
-  String? EmailError;
-  String? PassError;
   bool _isLoading = false;
-
-   // 4.3 Validadores
-  bool isValidEmail(String email) {
-    final re = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
-    return re.hasMatch(email);
-  }
-
-  bool isValidPassword(String pass) {
-    // mínimo 8, una mayúscula, una minúscula, un dígito y un especial
-    final re = RegExp(
-      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$',
-    );
-    return re.hasMatch(pass);
-  }
 
   // 4.4 accion del boton
   Future<void> _onLogin() async {
     //Recortar espacion en blanco accidentales
     final email = emailCtrl.text.trim();
     final pass = passCtrl.text;
-
-    //Recalcular errores
-    final emailTypedError = isValidEmail(email) ? null : 'Invalid Email';
-    final passTypedError = isValidPassword(pass) ? null : 'Invalid Password';
-
-    //4.5 para mostrar el cambio
-    setState(() {
-      EmailError = emailTypedError;
-      PassError = passTypedError;
-    });
 
     //4.6 Cerrar el teclado y oso neutro
     FocusScope.of(context).unfocus();
@@ -75,7 +48,10 @@ class _LoginScreenState extends State<LoginScreen> {
     _isHandsUp?.change(false);
     _numLook?.value = 50.0;
 
-    if (emailTypedError != null || passTypedError != null) {
+    if (email.isEmpty || pass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Completa correo y contraseña')),
+      );
       _trigFail?.fire();
       return;
     }
@@ -103,20 +79,33 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(builder: (_) => const ProductsScreen()),
       );
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       if (!mounted) return;
-      debugPrint('🔥 code: ${e.code} | message: ${e.message}');
       setState(() {
         _isLoading = false;
-        PassError = 'Error: ${e.code}';
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Credenciales inválidas. Verifica tu correo y contraseña.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
       _trigFail?.fire();
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        PassError = 'No fue posible iniciar sesion';
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Credenciales inválidas. Verifica tu correo y contraseña.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
       _trigFail?.fire();
     }
   }
@@ -220,8 +209,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   },
                   decoration: InputDecoration(
-                    //4.9 Mostrar error de validacion
-                    errorText: EmailError,
                     hintText: "Email",
                     prefixIcon: const Icon(Icons.email),
                     border: OutlineInputBorder(
@@ -249,8 +236,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                   obscureText: _isObscure,
                   decoration: InputDecoration(
-                    //4.9 Mostrar error de validacion
-                    errorText: PassError,
                     hintText: "Password",
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
