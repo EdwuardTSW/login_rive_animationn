@@ -6,11 +6,11 @@ import 'package:http/http.dart' as http;
 class ProductsScreen extends StatelessWidget {
   const ProductsScreen({super.key});
 
-  // Chrome runs on the same computer as Spring Boot.
-  static const String baseUrl = 'http://localhost:8080';
+  // Para web/iOS usa localhost; para celular físico, la IP local de la PC.
+  static const String baseUrl = 'http://10.0.2.2:8080';
 
   Future<List<dynamic>> fetchProducts() async {
-    final response = await http.get(Uri.parse('$baseUrl/products'));
+    final response = await http.get(Uri.parse('$baseUrl/pets'));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
@@ -22,7 +22,7 @@ class ProductsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Productos de Spring Boot')),
+      appBar: AppBar(title: const Text('Pacientes de la Veterinaria')),
       body: FutureBuilder<List<dynamic>>(
         future: fetchProducts(),
         builder: (context, snapshot) {
@@ -38,11 +38,18 @@ class ProductsScreen extends StatelessWidget {
           return ListView.builder(
             itemCount: products.length,
             itemBuilder: (context, index) {
-              final product = products[index] as Map<String, dynamic>;
+              final pet = products[index] as Map<String, dynamic>;
+              final breed = pet['breed']?.toString() ?? 'Sin raza';
+              final age = pet['age']?.toString() ?? 'Sin edad';
+              final owner = pet['owner'] as Map<String, dynamic>?;
+              final ownerName = owner?['name']?.toString() ?? 'Sin dueño';
+
               return ListTile(
-                title: Text(product['name'].toString()),
-                subtitle: Text('Stock: ${product['stock']}'),
-                trailing: Text('\$${product['price']}'),
+                leading: const Icon(Icons.pets),
+                title: Text(pet['name'].toString()),
+                subtitle: Text(
+                  '${pet['species']} · $breed · $age años\nDueño: $ownerName',
+                ),
               );
             },
           );

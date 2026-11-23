@@ -103,11 +103,12 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(builder: (_) => const ProductsScreen()),
       );
-    } on FirebaseAuthException {
+    } on FirebaseAuthException catch (e) {
       if (!mounted) return;
+      debugPrint('🔥 code: ${e.code} | message: ${e.message}');
       setState(() {
         _isLoading = false;
-        PassError = 'Credenciales incorrectas en Firebase';
+        PassError = 'Error: ${e.code}';
       });
       _trigFail?.fire();
     } catch (_) {
